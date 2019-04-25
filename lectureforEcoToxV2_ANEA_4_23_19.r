@@ -1,11 +1,18 @@
 library(readr)
-data <- read_csv("popdatabytreats_nometadata_ANEA_skinny.csv")
+data <- read_csv("popdatabytreats_nometadata_ANEA_skinny.csv")  # make sure that script+file are in same directory and the wd of R is set there
 
 library(tidyverse)
-library(drc)
+
 library(ggridges)
 
+## what are the groups of data like?
+length(unique(data$rep))
+length(data$rep)
+length(unique(data$treatnum))
+length(data$treatnum)
 
+
+## Use dplyr strategy to group and summarise data
 datasumm <- data %>%
   group_by(treatnum,day) %>%
   summarise(maxc = max(count),
@@ -17,22 +24,63 @@ datasumm <- data %>%
             sdall = sd(count),
             medianall = median(count)
   )
-head(datasumm,20)
-tail(datasumm,20)
+head(datasumm,20)  # look at top of dataframe
+tail(datasumm,20)  # look at end of dataframe
 
+## to add proportion of mean column to dataframe
+datasumm$contmean <- datasumm$meanall[datasumm$treatnum==0]  # repeat control mean data
+head(datasumm, 20)
+datasumm$propdiff <- datasumm$meanall/datasumm$contmean  # do vector math
+head(datasumm, 20)
 
-datasumm$contmean <- datasumm$meanall[datasumm$treatnum==0]
-head(datasumm, 20)
-datasumm$propdiff <- datasumm$meanall/datasumm$contmean
-head(datasumm, 20)
+## to add day fudging for plotting tricks
 datasumm$dayplus <- datasumm$day+0.5
 datasumm$dayminus <- datasumm$day-0.5
 head(datasumm,20)
 
+## simple just view the data plots
+plot(meanall~day, data=subset(datasumm, treatnum==0), type="l", ylim=c(0,300))
+points(meanall~day, data=subset(datasumm, treatnum==10), type="l", col="blue")
+points(meanall~day, data=subset(datasumm, treatnum==100), type="l", col="red")
+
+plot(count~day, data=subset(data, treatnum==0), pch=16, ylim=c(0,300))
+points(count~day, data=subset(data, treatnum==10), pch=16, col="blue")
+points(count~day, data=subset(data, treatnum==100), pch=16, col="red")
+
+boxplot(count~treatnum, data=subset(data, day==70))
+boxplot(count~treatnum, data=data[data$day==70,])  # how to do subsetting?
+boxplot(count~day, data=subset(data, treatnum==10))
+boxplot(count~day*treatfact, data=data)
+boxplot(count~treatfact*day, data=data)
+boxplot(count~treatfact*day, data=data, col=c("darkgrey","blue","red"))
+
+
+# more subsetting ideas...
+data[data$day==70,]
+data["day"]
+data[["day"]]
+data$day
+head(data.frame(data$day),20)
+
+# are the treatments different?
+plot(data$count[data$treatnum==10]~data$count[data$treatnum==0], pch=16)
+lm1 <- lm(data$count[data$treatnum==10]~data$count[data$treatnum==0])
+summary(lm1)
+abline(lm1)
+plot(lm1)
+
+# are the treatments different?
+plot(density(data$count[data$treatnum==10]))
+points(density(data$count[data$treatnum==0]), col="red", type="l")
+
+
+# simple plot of proportional difference from control line plot
 plot(propdiff~day, data=subset(datasumm, treatnum==0), type="l", ylim=c(0,2))
 points(propdiff~day, data=subset(datasumm, treatnum==10), type="l", col="blue")
 points(propdiff~day, data=subset(datasumm, treatnum==100), type="l", col="red")
 
+
+# pretty plot of same using base methods
 par(mai=c(1,1,0.1,0.1))
 plot(propdiff~day, data=subset(datasumm, treatnum==0), type="l", 
      ylim=c(min(datasumm$propdiff),max(datasumm$propdiff)), 
@@ -49,21 +97,26 @@ text(50,0.55,bquote(paste("Mean, 100 ppb = ",.(round(mean(datasumm$propdiff[data
 par(mai=c(1,1,0.5,0.5))
 
 
-
+# simple ggplot of propdiff~time
 ggplot(datasumm, aes(x=day,y=propdiff, group=factor(treatnum), colour=factor(treatnum))) + 
   geom_line()
 
 ggplot(datasumm, aes(x=day,y=propdiff, group=factor(treatnum), colour=factor(treatnum))) + 
   geom_line() +
-  theme_bw()
+  theme_bw()  # add a theme
 
+# pretty ggplot of propdiff
 ggplot(datasumm, aes(x=day,y=propdiff, group=factor(treatnum), colour=factor(treatnum))) + 
   geom_line(lwd=1.25) +
   scale_colour_manual(values=c("black","blue","red")) +
-  annotate("text", x=50,y=0.6,label=paste("Mean, 10 ppb = ", round(mean(datasumm$propdiff[datasumm$treatnum==10]),2)), colour="blue") +
-  annotate("text", x=50,y=0.55,label=paste("Mean, 100 ppb = ", round(mean(datasumm$propdiff[datasumm$treatnum==100]),2)), colour="red") + 
+  annotate("text", x=50,y=0.6,
+           label=paste("Mean, 10 ppb = ", round(mean(datasumm$propdiff[datasumm$treatnum==10]),2)), colour="blue") +
+  annotate("text", x=50,y=0.55,
+           label=paste("Mean, 100 ppb = ", round(mean(datasumm$propdiff[datasumm$treatnum==100]),2)), colour="red") + 
   theme_classic() +
-  theme(legend.position=c(0,1), legend.justification=c(0,1), legend.background=element_blank(),axis.title=element_text(face="bold", size=14), axis.text=element_text(face="bold", size=12, colour="black")) +
+  theme(legend.position=c(0,1), legend.justification=c(0,1), 
+        legend.background=element_blank(),axis.title=element_text(face="bold", size=14), 
+        axis.text=element_text(face="bold", size=12, colour="black")) +
   labs(colour="Treatment", x="Day", y="Proportional Difference to Control")
 
 
@@ -153,4 +206,28 @@ text(data$count, data$day, data$ID2)
 
 plot(count~day, data=data, pch=c("C","L","H")[unclass(factor(data$treatfact))], col=c("black","blue","red")[unclass(factor(treatnum))], xlim=c(23.5,40.25))
 plot(count~jitter(day,1), data=data, pch=c("C","L","H")[unclass(factor(data$treatfact))], col=c("black","blue","red")[unclass(factor(treatnum))], xlim=c(23.5,40.25))
+
+
+
+
+
+
+
+
+
+cont1 <- subset(data, ID2=="C1")
+cont2 <- subset(data, ID2=="C2")
+cont3 <- subset(data, ID2=="C3")
+cont4 <- subset(data, ID2=="C4")
+cont5 <- subset(data, ID2=="C5")
+
+plot(count~day, data=cont1, type="l", ylim=c(0,250))
+points(count~day, data=cont2, type="l")
+points(count~day, data=cont3, type="l")
+points(count~day, data=cont4, type="l")
+points(count~day, data=cont5, type="l")
+
+
+
+
 

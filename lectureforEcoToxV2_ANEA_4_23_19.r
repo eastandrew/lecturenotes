@@ -48,6 +48,7 @@ points(count~day, data=subset(data, treatnum==10), pch=16, col="blue")
 points(count~day, data=subset(data, treatnum==100), pch=16, col="red")
 
 boxplot(count~treatnum, data=subset(data, day==70))
+boxplot(count~treatnum, data=subset(data, day==70), notch=T)
 boxplot(count~treatnum, data=data[data$day==70,])  # how to do subsetting?
 boxplot(count~day, data=subset(data, treatnum==10))
 boxplot(count~day*treatfact, data=data)

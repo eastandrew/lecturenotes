@@ -53,7 +53,7 @@ boxplot(count~treatnum, data=data[data$day==70,])  # how to do subsetting?
 boxplot(count~day, data=subset(data, treatnum==10))
 boxplot(count~day*treatfact, data=data)
 boxplot(count~treatfact*day, data=data)
-boxplot(count~treatfact*day, data=data, col=c("darkgrey","blue","red"))
+boxplot(count~treatfact*day, data=data, col=c("darkgrey","blue","red"), las=1)
 
 
 # more subsetting ideas...
@@ -95,6 +95,7 @@ legend("topleft",c("Control","10 ppb","100 ppb"), col=c("black","blue","red"),
        lty=1, pch=NA, text.font=2, bty="n", lwd=2)
 text(50,0.6,bquote(paste("Mean, 10 ppb = ",.(round(mean(datasumm$propdiff[datasumm$treatnum==10]),2)))), col="blue")
 text(50,0.55,bquote(paste("Mean, 100 ppb = ",.(round(mean(datasumm$propdiff[datasumm$treatnum==100]),2)))), col="red")
+text(50,0.65, "cats are the worst")
 par(mai=c(1,1,0.5,0.5))
 
 
@@ -184,17 +185,19 @@ ggplot(datasumm, aes(x=day, y=meanall, group=factor(treatnum), fill=factor(treat
 
 
 data$ID2 <- paste(data$treatfact,data$rep,sep="")
+head(data)
 
 ggplot(data, aes(x=day, y=count, colour=factor(treatnum), group=ID2)) +
   geom_line()
 
 ggplot(data, aes(x=day, y=count, colour=factor(treatnum), group=ID2)) +
-  geom_line() +
+  geom_line() + 
+  geom_text(subset(data, day==70),mapping=aes(x=70,y=count,label=ID2)) +
   facet_wrap(~factor(treatnum))
 
 ggplot() +
   geom_line(data=data, mapping=aes(x=day, y=count, colour=factor(treatnum), group=ID2)) +
-  geom_ribbon(data=datasumm,mapping=aes(ymin=minc, ymax=maxc, x=day, fill=factor(treatnum)), alpha=0.3) +
+  geom_ribbon(data=datasumm,mapping=aes(ymin=lowerc, ymax=upperc, x=day, fill=factor(treatnum)), alpha=0.3) +
   facet_wrap(~treatnum, ncol=1) +
   theme(legend.position="top")
 
